@@ -1,0 +1,369 @@
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+// Functions from the other .cpp files.
+struct Array;
+Array* arrayCreate();
+void arrayDestroy(Array*);
+int arraySize(const Array*);
+void arrayInsert(Array*, int, const string&);
+string arrayGet(const Array*, int);
+void arraySet(Array*, int, const string&);
+string arrayDelete(Array*, int);
+vector<string> arrayValues(const Array*);
+
+struct SingleList;
+SingleList* singleCreate();
+void singleDestroy(SingleList*);
+int singleSize(const SingleList*);
+void singleInsert(SingleList*, int, const string&);
+string singleGet(const SingleList*, int);
+string singleDelete(SingleList*, int);
+int singleFind(const SingleList*, const string&);
+vector<string> singleValues(const SingleList*);
+
+struct DoubleList;
+DoubleList* doubleCreate();
+void doubleDestroy(DoubleList*);
+int doubleSize(const DoubleList*);
+void doubleInsert(DoubleList*, int, const string&);
+string doubleGet(const DoubleList*, int);
+string doubleDelete(DoubleList*, int);
+int doubleFind(const DoubleList*, const string&);
+vector<string> doubleValues(const DoubleList*, bool);
+
+struct Stack;
+Stack* stackCreate();
+void stackDestroy(Stack*);
+void stackPush(Stack*, const string&);
+string stackGet(const Stack*);
+string stackPop(Stack*);
+vector<string> stackValues(const Stack*);
+
+struct Queue;
+Queue* queueCreate();
+void queueDestroy(Queue*);
+void queuePush(Queue*, const string&);
+string queueGet(const Queue*);
+string queuePop(Queue*);
+vector<string> queueValues(const Queue*);
+
+struct Data {
+    char type;
+    Array* array = nullptr;
+    SingleList* single = nullptr;
+    DoubleList* doubly = nullptr;
+    Stack* stack = nullptr;
+    Queue* queue = nullptr;
+
+    explicit Data(char type) : type(type) {
+        if (type == 'M') array = arrayCreate();
+        if (type == 'F') single = singleCreate();
+        if (type == 'L') doubly = doubleCreate();
+        if (type == 'S') stack = stackCreate();
+        if (type == 'Q') queue = queueCreate();
+    }
+
+    ~Data() {
+        if (array != nullptr) arrayDestroy(array);
+        if (single != nullptr) singleDestroy(single);
+        if (doubly != nullptr) doubleDestroy(doubly);
+        if (stack != nullptr) stackDestroy(stack);
+        if (queue != nullptr) queueDestroy(queue);
+    }
+};
+
+using Database = map<string, unique_ptr<Data>>;
+
+Data& getData(Database& db, const string& name, char type, bool create = false) {
+    auto it = db.find(name);
+    if (it == db.end()) {
+        if (!create) throw runtime_error("container does not exist");
+        it = db.emplace(name, make_unique<Data>(type)).first;
+    }
+    if (it->second->type != type) throw runtime_error("wrong container type");
+    return *it->second;
+}
+
+int listSize(const Data& d) {
+    return d.type == 'F' ? singleSize(d.single) : doubleSize(d.doubly);
+}
+
+void listInsert(Data& d, int index, const string& value) {
+    if (d.type == 'F') singleInsert(d.single, index, value);
+    else doubleInsert(d.doubly, index, value);
+}
+
+string listGet(const Data& d, int index) {
+    return d.type == 'F' ? singleGet(d.single, index) : doubleGet(d.doubly, index);
+}
+
+string listDelete(Data& d, int index) {
+    return d.type == 'F' ? singleDelete(d.single, index) : doubleDelete(d.doubly, index);
+}
+
+int listFind(const Data& d, const string& value) {
+    return d.type == 'F' ? singleFind(d.single, value) : doubleFind(d.doubly, value);
+}
+
+vector<string> values(const Data& d, bool reverse = false) {
+    vector<string> result;
+    if (d.type == 'M') result = arrayValues(d.array);
+    if (d.type == 'F') result = singleValues(d.single);
+    if (d.type == 'L') result = doubleValues(d.doubly, reverse);
+    if (d.type == 'S') result = stackValues(d.stack);
+    if (d.type == 'Q') result = queueValues(d.queue);
+    if (reverse && d.type != 'L') std::reverse(result.begin(), result.end());
+    return result;
+}
+
+string show(const Data& d, bool reverse = false) {
+    vector<string> items = values(d, reverse);
+    if (items.empty()) return "(empty)";
+    ostringstream output;
+    for (size_t i = 0; i < items.size(); i++) {
+        if (i > 0) output << ' ';
+        output << items[i];
+    }
+    return output.str();
+}
+
+Database loadFile(const string& path) {
+    Database db;
+    if (!filesystem::exists(path)) return db;
+    ifstream file(path);
+    int count;
+    if (!(file >> count) || count < 0 || count > 1000000) throw runtime_error("bad data file");
+    for (int i = 0; i < count; i++) {
+        char type;
+        string name;
+        int size;
+        if (!(file >> type >> name >> size) || size < 0 || size > 1000000) throw runtime_error("bad data file");
+        if (string("MFLSQ").find(type) == string::npos || db.count(name)) throw runtime_error("bad data file");
+        Data& d = getData(db, name, type, true);
+        vector<string> items;
+        for (int j = 0; j < size; j++) {
+            string value;
+            if (!(file >> value)) throw runtime_error("bad data file");
+            items.push_back(value);
+        }
+        if (type == 'S') {
+            for (int j = size - 1; j >= 0; j--) stackPush(d.stack, items[j]);
+        } else {
+            for (const string& value : items) {
+                if (type == 'M') arrayInsert(d.array, arraySize(d.array), value);
+                if (type == 'F') singleInsert(d.single, singleSize(d.single), value);
+                if (type == 'L') doubleInsert(d.doubly, doubleSize(d.doubly), value);
+                if (type == 'Q') queuePush(d.queue, value);
+            }
+        }
+    }
+    return db;
+}
+
+void saveFile(const Database& db, const string& path) {
+    ofstream file(path);
+    if (!file) throw runtime_error("cannot write data file");
+    file << db.size() << '\n';
+    for (const auto& entry : db) {
+        vector<string> items = values(*entry.second);
+        file << entry.second->type << ' ' << entry.first << ' ' << items.size() << '\n';
+        for (const string& value : items) file << value << '\n';
+    }
+    if (!file) throw runtime_error("cannot write data file");
+}
+
+void need(const vector<string>& words, size_t count) {
+    if (words.size() != count) throw runtime_error("wrong number of arguments");
+}
+
+int number(const string& text) {
+    size_t end = 0;
+    try {
+        int value = stoi(text, &end);
+        if (end == text.size() && value >= 0) return value;
+    } catch (...) {}
+    throw runtime_error("index must be a non-negative integer");
+}
+
+string runArray(Database& db, const vector<string>& words, bool& changed) {
+    const string& op = words[0];
+    Data& d = getData(db, words[1], 'M', op == "MPUSH" || op == "MINSERT");
+    if (op == "MPUSH") {
+        need(words, 3);
+        arrayInsert(d.array, arraySize(d.array), words[2]);
+        changed = true;
+        return words[2];
+    }
+    if (op == "MINSERT") {
+        need(words, 4);
+        arrayInsert(d.array, number(words[2]), words[3]);
+        changed = true;
+        return words[3];
+    }
+    if (op == "MGET") { need(words, 3); return arrayGet(d.array, number(words[2])); }
+    if (op == "MSET") {
+        need(words, 4);
+        arraySet(d.array, number(words[2]), words[3]);
+        changed = true;
+        return words[3];
+    }
+    if (op == "MDEL") {
+        need(words, 3);
+        string result = arrayDelete(d.array, number(words[2]));
+        changed = true;
+        return result;
+    }
+    if (op == "MLEN") { need(words, 2); return to_string(arraySize(d.array)); }
+    if (op == "MREAD") { need(words, 2); return show(d); }
+    throw runtime_error("unknown command");
+}
+
+string runList(Database& db, const vector<string>& words, bool& changed) {
+    const string& op = words[0];
+    string action = op.substr(1);
+    bool adding = action == "PUSH" || action == "INSERTHEAD" || action == "INSERTTAIL" ||
+                  action == "INSERTBEFORE" || action == "INSERTAFTER";
+    Data& d = getData(db, words[1], op[0], adding);
+    int size = listSize(d);
+    if (action == "PUSH" || action == "INSERTHEAD" || action == "INSERTTAIL") {
+        need(words, 3);
+        listInsert(d, action == "INSERTHEAD" ? 0 : size, words[2]);
+        changed = true;
+        return words[2];
+    }
+    if (action == "INSERTBEFORE" || action == "INSERTAFTER") {
+        need(words, 4);
+        int index = number(words[2]);
+        if (index >= size) throw runtime_error("index out of range");
+        if (action == "INSERTAFTER") index++;
+        listInsert(d, index, words[3]);
+        changed = true;
+        return words[3];
+    }
+    if (action == "DEL" || action == "DELBEFORE" || action == "DELAFTER") {
+        need(words, 3);
+        int index = number(words[2]);
+        if (action != "DEL" && index >= size) throw runtime_error("index out of range");
+        if (action == "DELBEFORE") index--;
+        if (action == "DELAFTER") index++;
+        string result = listDelete(d, index);
+        changed = true;
+        return result;
+    }
+    if (action == "DELHEAD" || action == "DELTAIL") {
+        need(words, 2);
+        string result = listDelete(d, action == "DELHEAD" ? 0 : size - 1);
+        changed = true;
+        return result;
+    }
+    if (action == "REMOVE") {
+        need(words, 3);
+        int index = listFind(d, words[2]);
+        if (index == -1) throw runtime_error("value not found");
+        string result = listDelete(d, index);
+        changed = true;
+        return result;
+    }
+    if (action == "FIND") { need(words, 3); return to_string(listFind(d, words[2])); }
+    if (action == "GET") { need(words, 3); return listGet(d, number(words[2])); }
+    if (action == "READ") {
+        if (words.size() != 2 && words.size() != 3) throw runtime_error("wrong number of arguments");
+        if (words.size() == 3 && words[2] != "FORWARD" && words[2] != "REVERSE") throw runtime_error("use FORWARD or REVERSE");
+        return show(d, words.size() == 3 && words[2] == "REVERSE");
+    }
+    throw runtime_error("unknown command");
+}
+
+string runStackQueue(Database& db, const vector<string>& words, bool& changed) {
+    const string& op = words[0];
+    string action = op.substr(1);
+    Data& d = getData(db, words[1], op[0], action == "PUSH");
+    if (action == "PUSH") {
+        need(words, 3);
+        if (d.type == 'S') stackPush(d.stack, words[2]);
+        else queuePush(d.queue, words[2]);
+        changed = true;
+        return words[2];
+    }
+    if (action == "POP") {
+        need(words, 2);
+        string result = d.type == 'S' ? stackPop(d.stack) : queuePop(d.queue);
+        changed = true;
+        return result;
+    }
+    if (action == "GET") {
+        need(words, 2);
+        return d.type == 'S' ? stackGet(d.stack) : queueGet(d.queue);
+    }
+    if (action == "READ") { need(words, 2); return show(d); }
+    throw runtime_error("unknown command");
+}
+
+string run(Database& db, const string& query, bool& changed) {
+    istringstream input(query);
+    vector<string> words;
+    string word;
+    while (input >> word) words.push_back(word);
+    if (words.empty()) throw runtime_error("empty command");
+    const string& op = words[0];
+    if (op == "HELP") {
+        need(words, 1);
+        return "M: CREATE PUSH INSERT GET SET DEL LEN READ; F/L: CREATE PUSH INSERTHEAD INSERTTAIL INSERTBEFORE INSERTAFTER DEL DELHEAD DELTAIL DELBEFORE DELAFTER REMOVE FIND GET READ; S/Q: CREATE PUSH POP GET READ; PRINT name";
+    }
+    if (words.size() < 2) throw runtime_error("container name required");
+    if (op == "PRINT") {
+        need(words, 2);
+        auto it = db.find(words[1]);
+        if (it == db.end()) throw runtime_error("container does not exist");
+        return show(*it->second);
+    }
+    if (op.size() < 2 || string("MFLSQ").find(op[0]) == string::npos) throw runtime_error("unknown command");
+    char type = op[0];
+    if (op == string(1, type) + "CREATE") {
+        need(words, 2);
+        if (db.count(words[1])) throw runtime_error("container already exists");
+        getData(db, words[1], type, true);
+        changed = true;
+        return "OK";
+    }
+    if (type == 'M') return runArray(db, words, changed);
+    if (type == 'F' || type == 'L') return runList(db, words, changed);
+    return runStackQueue(db, words, changed);
+}
+
+int main(int argc, char* argv[]) {
+    string file;
+    string query;
+    for (int i = 1; i + 1 < argc; i += 2) {
+        string option = argv[i];
+        if (option == "--file") file = argv[i + 1];
+        else if (option == "--query") query = argv[i + 1];
+        else { cerr << "unknown option\n"; return 1; }
+    }
+    if (argc != 5 || file.empty() || query.empty()) {
+        cerr << "usage: dbms --file data.txt --query \"COMMAND name arguments\"\n";
+        return 1;
+    }
+    try {
+        Database db = loadFile(file);
+        bool changed = false;
+        string result = run(db, query, changed);
+        if (changed) saveFile(db, file);
+        cout << result << '\n';
+    } catch (const exception& error) {
+        cerr << "error: " << error.what() << '\n';
+        return 1;
+    }
+    return 0;
+}

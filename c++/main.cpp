@@ -11,7 +11,7 @@
 
 using namespace std;
 
-// Functions from the other .cpp files.
+// Объявления функций, которые реализованы в остальных файлах проекта.
 struct Array;
 Array* arrayCreate();
 void arrayDestroy(Array*);
@@ -58,6 +58,15 @@ string queueGet(const Queue*);
 string queuePop(Queue*);
 vector<string> queueValues(const Queue*);
 
+struct AvlTree;
+AvlTree* avlCreate();
+void avlDestroy(AvlTree*);
+void avlInsert(AvlTree*, int);
+bool avlContains(const AvlTree*, int);
+bool avlDelete(AvlTree*, int);
+vector<int> avlValues(const AvlTree*);
+
+// Хранит одну структуру данных выбранного типа.
 struct Data {
     char type;
     Array* array = nullptr;
@@ -65,6 +74,7 @@ struct Data {
     DoubleList* doubly = nullptr;
     Stack* stack = nullptr;
     Queue* queue = nullptr;
+    AvlTree* tree = nullptr;
 
     explicit Data(char type) : type(type) {
         if (type == 'M') array = arrayCreate();
@@ -72,6 +82,7 @@ struct Data {
         if (type == 'L') doubly = doubleCreate();
         if (type == 'S') stack = stackCreate();
         if (type == 'Q') queue = queueCreate();
+        if (type == 'T') tree = avlCreate();
     }
 
     ~Data() {
@@ -80,9 +91,11 @@ struct Data {
         if (doubly != nullptr) doubleDestroy(doubly);
         if (stack != nullptr) stackDestroy(stack);
         if (queue != nullptr) queueDestroy(queue);
+        if (tree != nullptr) avlDestroy(tree);
     }
 };
 
+// Имя структуры связано с ее данными.
 using Database = map<string, unique_ptr<Data>>;
 
 Data& getData(Database& db, const string& name, char type, bool create = false) {
@@ -123,6 +136,9 @@ vector<string> values(const Data& d, bool reverse = false) {
     if (d.type == 'L') result = doubleValues(d.doubly, reverse);
     if (d.type == 'S') result = stackValues(d.stack);
     if (d.type == 'Q') result = queueValues(d.queue);
+    if (d.type == 'T') {
+        for (int key : avlValues(d.tree)) result.push_back(to_string(key));
+    }
     if (reverse && d.type != 'L') std::reverse(result.begin(), result.end());
     return result;
 }
@@ -138,6 +154,16 @@ string show(const Data& d, bool reverse = false) {
     return output.str();
 }
 
+int treeNumber(const string& text) {
+    size_t end = 0;
+    try {
+        int value = stoi(text, &end);
+        if (end == text.size()) return value;
+    } catch (...) {}
+    throw runtime_error("tree key must be an integer");
+}
+
+// Восстанавливает структуры из файла перед выполнением команды.
 Database loadFile(const string& path) {
     Database db;
     if (!filesystem::exists(path)) return db;
@@ -149,7 +175,7 @@ Database loadFile(const string& path) {
         string name;
         int size;
         if (!(file >> type >> name >> size) || size < 0 || size > 1000000) throw runtime_error("bad data file");
-        if (string("MFLSQ").find(type) == string::npos || db.count(name)) throw runtime_error("bad data file");
+        if (string("MFLSQT").find(type) == string::npos || db.count(name)) throw runtime_error("bad data file");
         Data& d = getData(db, name, type, true);
         vector<string> items;
         for (int j = 0; j < size; j++) {
@@ -165,12 +191,14 @@ Database loadFile(const string& path) {
                 if (type == 'F') singleInsert(d.single, singleSize(d.single), value);
                 if (type == 'L') doubleInsert(d.doubly, doubleSize(d.doubly), value);
                 if (type == 'Q') queuePush(d.queue, value);
+                if (type == 'T') avlInsert(d.tree, treeNumber(value));
             }
         }
     }
     return db;
 }
 
+// Сохраняет все структуры после команды, изменившей данные.
 void saveFile(const Database& db, const string& path) {
     ofstream file(path);
     if (!file) throw runtime_error("cannot write data file");
@@ -196,6 +224,7 @@ int number(const string& text) {
     throw runtime_error("index must be a non-negative integer");
 }
 
+// Выполняет команды массива.
 string runArray(Database& db, const vector<string>& words, bool& changed) {
     const string& op = words[0];
     Data& d = getData(db, words[1], 'M', op == "MPUSH" || op == "MINSERT");
@@ -229,6 +258,7 @@ string runArray(Database& db, const vector<string>& words, bool& changed) {
     throw runtime_error("unknown command");
 }
 
+// Выполняет команды односвязного и двусвязного списков.
 string runList(Database& db, const vector<string>& words, bool& changed) {
     const string& op = words[0];
     string action = op.substr(1);
@@ -285,6 +315,7 @@ string runList(Database& db, const vector<string>& words, bool& changed) {
     throw runtime_error("unknown command");
 }
 
+// Выполняет команды стека и очереди.
 string runStackQueue(Database& db, const vector<string>& words, bool& changed) {
     const string& op = words[0];
     string action = op.substr(1);
@@ -310,6 +341,33 @@ string runStackQueue(Database& db, const vector<string>& words, bool& changed) {
     throw runtime_error("unknown command");
 }
 
+// Выполняет команды АВЛ-дерева.
+string runTree(Database& db, const vector<string>& words, bool& changed) {
+    const string& op = words[0];
+    Data& d = getData(db, words[1], 'T', op == "TINSERT");
+    if (op == "TINSERT") {
+        need(words, 3);
+        int key = treeNumber(words[2]);
+        bool exists = avlContains(d.tree, key);
+        avlInsert(d.tree, key);
+        changed = !exists;
+        return words[2];
+    }
+    if (op == "TDEL") {
+        need(words, 3);
+        if (!avlDelete(d.tree, treeNumber(words[2]))) throw runtime_error("value not found");
+        changed = true;
+        return words[2];
+    }
+    if (op == "TGET") {
+        need(words, 3);
+        return avlContains(d.tree, treeNumber(words[2])) ? "TRUE" : "FALSE";
+    }
+    if (op == "TREAD") { need(words, 2); return show(d); }
+    throw runtime_error("unknown command");
+}
+
+// Разбирает строку команды и выбирает нужную структуру данных.
 string run(Database& db, const string& query, bool& changed) {
     istringstream input(query);
     vector<string> words;
@@ -319,7 +377,7 @@ string run(Database& db, const string& query, bool& changed) {
     const string& op = words[0];
     if (op == "HELP") {
         need(words, 1);
-        return "M: CREATE PUSH INSERT GET SET DEL LEN READ; F/L: CREATE PUSH INSERTHEAD INSERTTAIL INSERTBEFORE INSERTAFTER DEL DELHEAD DELTAIL DELBEFORE DELAFTER REMOVE FIND GET READ; S/Q: CREATE PUSH POP GET READ; PRINT name";
+        return "M: CREATE PUSH INSERT GET SET DEL LEN READ; F/L: CREATE PUSH INSERTHEAD INSERTTAIL INSERTBEFORE INSERTAFTER DEL DELHEAD DELTAIL DELBEFORE DELAFTER REMOVE FIND GET READ; S/Q: CREATE PUSH POP GET READ; T: CREATE INSERT DEL GET READ; PRINT name; ISMEMBER name key";
     }
     if (words.size() < 2) throw runtime_error("container name required");
     if (op == "PRINT") {
@@ -328,7 +386,12 @@ string run(Database& db, const string& query, bool& changed) {
         if (it == db.end()) throw runtime_error("container does not exist");
         return show(*it->second);
     }
-    if (op.size() < 2 || string("MFLSQ").find(op[0]) == string::npos) throw runtime_error("unknown command");
+    if (op == "ISMEMBER") {
+        need(words, 3);
+        Data& d = getData(db, words[1], 'T');
+        return avlContains(d.tree, treeNumber(words[2])) ? "TRUE" : "FALSE";
+    }
+    if (op.size() < 2 || string("MFLSQT").find(op[0]) == string::npos) throw runtime_error("unknown command");
     char type = op[0];
     if (op == string(1, type) + "CREATE") {
         need(words, 2);
@@ -339,9 +402,11 @@ string run(Database& db, const string& query, bool& changed) {
     }
     if (type == 'M') return runArray(db, words, changed);
     if (type == 'F' || type == 'L') return runList(db, words, changed);
+    if (type == 'T') return runTree(db, words, changed);
     return runStackQueue(db, words, changed);
 }
 
+// Точка входа: читает аргументы, загружает файл и запускает команду.
 int main(int argc, char* argv[]) {
     string file;
     string query;

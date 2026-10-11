@@ -4,6 +4,7 @@
 
 using namespace std;
 
+// Очередь хранит ссылки на первый и последний элементы.
 struct QueueNode {
     string value;
     QueueNode* next = nullptr;
@@ -27,6 +28,7 @@ void queueDestroy(Queue* queue) {
     delete queue;
 }
 
+// Добавляет новый элемент в конец очереди.
 void queuePush(Queue* queue, const string& value) {
     QueueNode* node = new QueueNode{value};
     if (queue->tail == nullptr) queue->head = node;
@@ -39,6 +41,7 @@ string queueGet(const Queue* queue) {
     return queue->head->value;
 }
 
+// Удаляет первый элемент очереди и возвращает его значение.
 string queuePop(Queue* queue) {
     string value = queueGet(queue);
     QueueNode* old = queue->head;

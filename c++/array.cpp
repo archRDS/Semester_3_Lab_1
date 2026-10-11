@@ -4,6 +4,7 @@
 
 using namespace std;
 
+// Динамический массив: data хранит элементы, size — их число, capacity — размер выделенной памяти.
 struct Array {
     string* data = nullptr;
     int size = 0;
@@ -23,6 +24,7 @@ int arraySize(const Array* array) {
     return array->size;
 }
 
+// При нехватке места увеличивает массив и вставляет значение по индексу.
 void arrayInsert(Array* array, int index, const string& value) {
     if (index < 0 || index > array->size) throw runtime_error("index out of range");
     if (array->size == array->capacity) {
@@ -48,6 +50,7 @@ void arraySet(Array* array, int index, const string& value) {
     array->data[index] = value;
 }
 
+// Удаляет элемент и сдвигает оставшиеся значения влево.
 string arrayDelete(Array* array, int index) {
     string value = arrayGet(array, index);
     for (int i = index; i + 1 < array->size; i++) array->data[i] = array->data[i + 1];

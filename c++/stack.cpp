@@ -4,6 +4,7 @@
 
 using namespace std;
 
+// Стек хранит ссылку на верхний элемент; первым удаляется последний добавленный.
 struct StackNode {
     string value;
     StackNode* next = nullptr;
@@ -26,6 +27,7 @@ void stackDestroy(Stack* stack) {
     delete stack;
 }
 
+// Добавляет элемент на вершину стека.
 void stackPush(Stack* stack, const string& value) {
     stack->top = new StackNode{value, stack->top};
 }
@@ -35,6 +37,7 @@ string stackGet(const Stack* stack) {
     return stack->top->value;
 }
 
+// Снимает элемент с вершины и возвращает его значение.
 string stackPop(Stack* stack) {
     string value = stackGet(stack);
     StackNode* old = stack->top;

@@ -4,12 +4,14 @@
 
 using namespace std;
 
+// Узел двусвязного списка хранит ссылки на предыдущий и следующий узлы.
 struct DoubleNode {
     string value;
     DoubleNode* prev = nullptr;
     DoubleNode* next = nullptr;
 };
 
+// Список хранит начало, конец и количество элементов.
 struct DoubleList {
     DoubleNode* head = nullptr;
     DoubleNode* tail = nullptr;
@@ -40,6 +42,7 @@ DoubleNode* doubleAt(const DoubleList* list, int index) {
     return node;
 }
 
+// Вставляет узел и обновляет связи с соседними узлами.
 void doubleInsert(DoubleList* list, int index, const string& value) {
     if (index < 0 || index > list->size) throw runtime_error("index out of range");
     DoubleNode* node = new DoubleNode{value};
@@ -63,6 +66,7 @@ string doubleGet(const DoubleList* list, int index) {
     return doubleAt(list, index)->value;
 }
 
+// Удаляет узел, сохраняя прямые и обратные связи списка.
 string doubleDelete(DoubleList* list, int index) {
     DoubleNode* node = doubleAt(list, index);
     if (node->prev == nullptr) list->head = node->next;
@@ -84,6 +88,7 @@ int doubleFind(const DoubleList* list, const string& value) {
     return -1;
 }
 
+// Читает список от начала или от конца.
 vector<string> doubleValues(const DoubleList* list, bool reverse) {
     vector<string> result;
     if (reverse) {

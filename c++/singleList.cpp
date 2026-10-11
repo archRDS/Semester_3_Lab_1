@@ -4,11 +4,13 @@
 
 using namespace std;
 
+// Узел односвязного списка хранит значение и ссылку на следующий узел.
 struct SingleNode {
     string value;
     SingleNode* next = nullptr;
 };
 
+// head и tail указывают на начало и конец списка.
 struct SingleList {
     SingleNode* head = nullptr;
     SingleNode* tail = nullptr;
@@ -32,6 +34,7 @@ int singleSize(const SingleList* list) {
     return list->size;
 }
 
+// Находит узел по индексу, последовательно проходя список.
 SingleNode* singleAt(const SingleList* list, int index) {
     if (index < 0 || index >= list->size) throw runtime_error("index out of range");
     SingleNode* node = list->head;
@@ -39,6 +42,7 @@ SingleNode* singleAt(const SingleList* list, int index) {
     return node;
 }
 
+// Вставляет новый узел в начало или после предыдущего узла.
 void singleInsert(SingleList* list, int index, const string& value) {
     if (index < 0 || index > list->size) throw runtime_error("index out of range");
     SingleNode* node = new SingleNode{value};
@@ -59,6 +63,7 @@ string singleGet(const SingleList* list, int index) {
     return singleAt(list, index)->value;
 }
 
+// Удаляет узел и соединяет соседние элементы списка.
 string singleDelete(SingleList* list, int index) {
     if (index < 0 || index >= list->size) throw runtime_error("index out of range");
     SingleNode* node;

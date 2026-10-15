@@ -35,7 +35,7 @@ string stackPop(Stack* stack) {
     return value;
 }
 
-vector<string> stackValues(const Stack* stack) {
+vector<string> stackRead(const Stack* stack) {
     vector<string> result;
     for (StackNode* node = stack->top; node != nullptr; node = node->next) {
         result.push_back(node->value);

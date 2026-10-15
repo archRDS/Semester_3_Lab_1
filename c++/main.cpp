@@ -59,38 +59,17 @@ Data& getData(Database& db, const string& name, char type, bool create = false) 
     return *it->second;
 }
 
-int listSize(const Data& d) {
-    return d.type == 'F' ? singleSize(d.single) : doubleSize(d.doubly);
-}
-
-void listInsert(Data& d, int index, const string& value) {
-    if (d.type == 'F') singleInsert(d.single, index, value);
-    else doubleInsert(d.doubly, index, value);
-}
-
-string listGet(const Data& d, int index) {
-    return d.type == 'F' ? singleGet(d.single, index) : doubleGet(d.doubly, index);
-}
-
-string listDelete(Data& d, int index) {
-    return d.type == 'F' ? singleDelete(d.single, index) : doubleDelete(d.doubly, index);
-}
-
-int listFind(const Data& d, const string& value) {
-    return d.type == 'F' ? singleFind(d.single, value) : doubleFind(d.doubly, value);
-}
-
 vector<string> values(const Data& d, bool reverse = false) {
     vector<string> result;
-    if (d.type == 'M') result = arrayValues(d.array);
-    if (d.type == 'F') result = singleValues(d.single);
-    if (d.type == 'L') result = doubleValues(d.doubly, reverse);
-    if (d.type == 'S') result = stackValues(d.stack);
-    if (d.type == 'Q') result = queueValues(d.queue);
+    if (d.type == 'M') result = arrayRead(d.array);
+    if (d.type == 'F') result = singleRead(d.single, reverse);
+    if (d.type == 'L') result = doubleRead(d.doubly, reverse);
+    if (d.type == 'S') result = stackRead(d.stack);
+    if (d.type == 'Q') result = queueRead(d.queue);
     if (d.type == 'T') {
         for (int key : avlValues(d.tree)) result.push_back(to_string(key));
     }
-    if (reverse && d.type != 'L') std::reverse(result.begin(), result.end());
+    if (reverse && d.type != 'F' && d.type != 'L') std::reverse(result.begin(), result.end());
     return result;
 }
 
@@ -138,9 +117,9 @@ Database loadFile(const string& path) {
             for (int j = size - 1; j >= 0; j--) stackPush(d.stack, items[j]);
         } else {
             for (const string& value : items) {
-                if (type == 'M') arrayInsert(d.array, arraySize(d.array), value);
-                if (type == 'F') singleInsert(d.single, singleSize(d.single), value);
-                if (type == 'L') doubleInsert(d.doubly, doubleSize(d.doubly), value);
+                if (type == 'M') arrayPush(d.array, value);
+                if (type == 'F') singlePush(d.single, value);
+                if (type == 'L') doublePush(d.doubly, value);
                 if (type == 'Q') queuePush(d.queue, value);
                 if (type == 'T') avlInsert(d.tree, treeNumber(value));
             }
@@ -181,7 +160,7 @@ string runArray(Database& db, const vector<string>& words, bool& changed) {
     Data& d = getData(db, words[1], 'M', op == "MPUSH" || op == "MINSERT");
     if (op == "MPUSH") {
         need(words, 3);
-        arrayInsert(d.array, arraySize(d.array), words[2]);
+        arrayPush(d.array, words[2]);
         changed = true;
         return words[2];
     }
@@ -216,52 +195,68 @@ string runList(Database& db, const vector<string>& words, bool& changed) {
     bool adding = action == "PUSH" || action == "INSERTHEAD" || action == "INSERTTAIL" ||
                   action == "INSERTBEFORE" || action == "INSERTAFTER";
     Data& d = getData(db, words[1], op[0], adding);
-    int size = listSize(d);
     if (action == "PUSH" || action == "INSERTHEAD" || action == "INSERTTAIL") {
         need(words, 3);
-        listInsert(d, action == "INSERTHEAD" ? 0 : size, words[2]);
+        if (d.type == 'F') {
+            if (action == "PUSH") singlePush(d.single, words[2]);
+            if (action == "INSERTHEAD") singleInsertHead(d.single, words[2]);
+            if (action == "INSERTTAIL") singleInsertTail(d.single, words[2]);
+        } else {
+            if (action == "PUSH") doublePush(d.doubly, words[2]);
+            if (action == "INSERTHEAD") doubleInsertHead(d.doubly, words[2]);
+            if (action == "INSERTTAIL") doubleInsertTail(d.doubly, words[2]);
+        }
         changed = true;
         return words[2];
     }
     if (action == "INSERTBEFORE" || action == "INSERTAFTER") {
         need(words, 4);
-        int index = listFind(d, words[2]);
-        if (index == -1) throw runtime_error("value not found");
-        if (action == "INSERTAFTER") index++;
-        listInsert(d, index, words[3]);
+        if (d.type == 'F') {
+            if (action == "INSERTBEFORE") singleInsertBefore(d.single, words[2], words[3]);
+            else singleInsertAfter(d.single, words[2], words[3]);
+        } else {
+            if (action == "INSERTBEFORE") doubleInsertBefore(d.doubly, words[2], words[3]);
+            else doubleInsertAfter(d.doubly, words[2], words[3]);
+        }
         changed = true;
         return words[3];
     }
     if (action == "DEL" || action == "DELBEFORE" || action == "DELAFTER") {
         need(words, 3);
-        int index = listFind(d, words[2]);
-        if (index == -1) throw runtime_error("value not found");
-        if (action == "DELBEFORE") index--;
-        if (action == "DELAFTER") index++;
-        string result = listDelete(d, index);
+        string result;
+        if (d.type == 'F') {
+            if (action == "DEL") result = singleDelete(d.single, words[2]);
+            if (action == "DELBEFORE") result = singleDeleteBefore(d.single, words[2]);
+            if (action == "DELAFTER") result = singleDeleteAfter(d.single, words[2]);
+        } else {
+            if (action == "DEL") result = doubleDelete(d.doubly, words[2]);
+            if (action == "DELBEFORE") result = doubleDeleteBefore(d.doubly, words[2]);
+            if (action == "DELAFTER") result = doubleDeleteAfter(d.doubly, words[2]);
+        }
         changed = true;
         return result;
     }
     if (action == "DELHEAD" || action == "DELTAIL") {
         need(words, 2);
-        string result = listDelete(d, action == "DELHEAD" ? 0 : size - 1);
+        string result = d.type == 'F'
+            ? (action == "DELHEAD" ? singleDeleteHead(d.single) : singleDeleteTail(d.single))
+            : (action == "DELHEAD" ? doubleDeleteHead(d.doubly) : doubleDeleteTail(d.doubly));
         changed = true;
         return result;
     }
     if (action == "REMOVE") {
         need(words, 3);
-        int index = listFind(d, words[2]);
-        if (index == -1) throw runtime_error("value not found");
-        string result = listDelete(d, index);
+        string result = d.type == 'F' ? singleRemove(d.single, words[2]) : doubleRemove(d.doubly, words[2]);
         changed = true;
         return result;
     }
-    if (action == "FIND") { need(words, 3); return to_string(listFind(d, words[2])); }
+    if (action == "FIND") {
+        need(words, 3);
+        return to_string(d.type == 'F' ? singleFind(d.single, words[2]) : doubleFind(d.doubly, words[2]));
+    }
     if (action == "GET") {
         need(words, 3);
-        int index = listFind(d, words[2]);
-        if (index == -1) throw runtime_error("value not found");
-        return listGet(d, index);
+        return d.type == 'F' ? singleGet(d.single, words[2]) : doubleGet(d.doubly, words[2]);
     }
     if (action == "READ") {
         if (words.size() != 2 && words.size() != 3) throw runtime_error("wrong number of arguments");

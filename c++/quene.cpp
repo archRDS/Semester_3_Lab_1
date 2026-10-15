@@ -39,7 +39,7 @@ string queuePop(Queue* queue) {
     return value;
 }
 
-vector<string> queueValues(const Queue* queue) {
+vector<string> queueRead(const Queue* queue) {
     vector<string> result;
     for (QueueNode* node = queue->head; node != nullptr; node = node->next) {
         result.push_back(node->value);

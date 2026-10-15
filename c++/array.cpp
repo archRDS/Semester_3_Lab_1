@@ -16,6 +16,10 @@ int arraySize(const Array* array) {
     return array->size;
 }
 
+void arrayPush(Array* array, const string& value) {
+    arrayInsert(array, array->size, value);
+}
+
 // При нехватке места увеличивает массив и вставляет значение по индексу.
 void arrayInsert(Array* array, int index, const string& value) {
     if (index < 0 || index > array->size) throw runtime_error("index out of range");
@@ -50,7 +54,7 @@ string arrayDelete(Array* array, int index) {
     return value;
 }
 
-vector<string> arrayValues(const Array* array) {
+vector<string> arrayRead(const Array* array) {
     vector<string> result;
     for (int i = 0; i < array->size; i++) result.push_back(array->data[i]);
     return result;

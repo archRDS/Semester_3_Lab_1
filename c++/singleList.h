@@ -1,5 +1,4 @@
 #pragma once
-
 #include <string>
 #include <vector>
 
@@ -17,8 +16,17 @@ struct SingleList {
 SingleList* singleCreate();
 void singleDestroy(SingleList* list);
 int singleSize(const SingleList* list);
-void singleInsert(SingleList* list, int index, const std::string& value);
-std::string singleGet(const SingleList* list, int index);
-std::string singleDelete(SingleList* list, int index);
+void singlePush(SingleList* list, const std::string& value);
+void singleInsertHead(SingleList* list, const std::string& value);
+void singleInsertTail(SingleList* list, const std::string& value);
+void singleInsertBefore(SingleList* list, const std::string& target, const std::string& value);
+void singleInsertAfter(SingleList* list, const std::string& target, const std::string& value);
+std::string singleDelete(SingleList* list, const std::string& target);
+std::string singleDeleteHead(SingleList* list);
+std::string singleDeleteTail(SingleList* list);
+std::string singleDeleteBefore(SingleList* list, const std::string& target);
+std::string singleDeleteAfter(SingleList* list, const std::string& target);
+std::string singleRemove(SingleList* list, const std::string& value);
+std::string singleGet(const SingleList* list, const std::string& value);
 int singleFind(const SingleList* list, const std::string& value);
-std::vector<std::string> singleValues(const SingleList* list);
+std::vector<std::string> singleRead(const SingleList* list, bool reverse);

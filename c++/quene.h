@@ -18,4 +18,4 @@ void queueDestroy(Queue* queue);
 void queuePush(Queue* queue, const std::string& value);
 std::string queueGet(const Queue* queue);
 std::string queuePop(Queue* queue);
-std::vector<std::string> queueValues(const Queue* queue);
+std::vector<std::string> queueRead(const Queue* queue);

@@ -17,4 +17,4 @@ void stackDestroy(Stack* stack);
 void stackPush(Stack* stack, const std::string& value);
 std::string stackGet(const Stack* stack);
 std::string stackPop(Stack* stack);
-std::vector<std::string> stackValues(const Stack* stack);
+std::vector<std::string> stackRead(const Stack* stack);

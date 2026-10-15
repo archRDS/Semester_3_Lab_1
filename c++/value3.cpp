@@ -1,25 +1,12 @@
-#include <vector>
+#include "value3.h"
 
 using namespace std;
 
-// Узел АВЛ-дерева хранит ключ, потомков и высоту для балансировки.
-struct AvlNode {
-    int key;
-    AvlNode* left;
-    AvlNode* right;
-    unsigned char height;
-
-    AvlNode(int k) {
-        key = k;
-        left = right = nullptr;
-        height = 1;
-    }
-};
-
-// Дерево хранит указатель на корневой узел.
-struct AvlTree {
-    AvlNode* root = nullptr;
-};
+AvlNode::AvlNode(int k) {
+    key = k;
+    left = right = nullptr;
+    height = 1;
+}
 
 static unsigned char getHeight(AvlNode* node) {
     if (node == nullptr) return 0;

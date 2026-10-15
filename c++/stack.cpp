@@ -1,18 +1,7 @@
 #include <stdexcept>
-#include <string>
-#include <vector>
+#include "stack.h"
 
 using namespace std;
-
-// Стек хранит ссылку на верхний элемент; первым удаляется последний добавленный.
-struct StackNode {
-    string value;
-    StackNode* next = nullptr;
-};
-
-struct Stack {
-    StackNode* top = nullptr;
-};
 
 Stack* stackCreate() {
     return new Stack;

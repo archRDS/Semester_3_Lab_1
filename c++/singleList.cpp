@@ -1,21 +1,7 @@
 #include <stdexcept>
-#include <string>
-#include <vector>
+#include "singleList.h"
 
 using namespace std;
-
-// Узел односвязного списка хранит значение и ссылку на следующий узел.
-struct SingleNode {
-    string value;
-    SingleNode* next = nullptr;
-};
-
-// head и tail указывают на начало и конец списка.
-struct SingleList {
-    SingleNode* head = nullptr;
-    SingleNode* tail = nullptr;
-    int size = 0;
-};
 
 SingleList* singleCreate() {
     return new SingleList;

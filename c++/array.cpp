@@ -1,15 +1,7 @@
 #include <stdexcept>
-#include <string>
-#include <vector>
+#include "array.h"
 
 using namespace std;
-
-// Динамический массив: data хранит элементы, size — их число, capacity — размер выделенной памяти.
-struct Array {
-    string* data = nullptr;
-    int size = 0;
-    int capacity = 0;
-};
 
 Array* arrayCreate() {
     return new Array;

@@ -1,22 +1,7 @@
 #include <stdexcept>
-#include <string>
-#include <vector>
+#include "DoubleList.h"
 
 using namespace std;
-
-// Узел двусвязного списка хранит ссылки на предыдущий и следующий узлы.
-struct DoubleNode {
-    string value;
-    DoubleNode* prev = nullptr;
-    DoubleNode* next = nullptr;
-};
-
-// Список хранит начало, конец и количество элементов.
-struct DoubleList {
-    DoubleNode* head = nullptr;
-    DoubleNode* tail = nullptr;
-    int size = 0;
-};
 
 DoubleList* doubleCreate() {
     return new DoubleList;

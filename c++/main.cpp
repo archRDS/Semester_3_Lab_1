@@ -8,63 +8,14 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "array.h"
+#include "singleList.h"
+#include "DoubleList.h"
+#include "stack.h"
+#include "quene.h"
+#include "value3.h"
 
 using namespace std;
-
-// Объявления функций, которые реализованы в остальных файлах проекта.
-struct Array;
-Array* arrayCreate();
-void arrayDestroy(Array*);
-int arraySize(const Array*);
-void arrayInsert(Array*, int, const string&);
-string arrayGet(const Array*, int);
-void arraySet(Array*, int, const string&);
-string arrayDelete(Array*, int);
-vector<string> arrayValues(const Array*);
-
-struct SingleList;
-SingleList* singleCreate();
-void singleDestroy(SingleList*);
-int singleSize(const SingleList*);
-void singleInsert(SingleList*, int, const string&);
-string singleGet(const SingleList*, int);
-string singleDelete(SingleList*, int);
-int singleFind(const SingleList*, const string&);
-vector<string> singleValues(const SingleList*);
-
-struct DoubleList;
-DoubleList* doubleCreate();
-void doubleDestroy(DoubleList*);
-int doubleSize(const DoubleList*);
-void doubleInsert(DoubleList*, int, const string&);
-string doubleGet(const DoubleList*, int);
-string doubleDelete(DoubleList*, int);
-int doubleFind(const DoubleList*, const string&);
-vector<string> doubleValues(const DoubleList*, bool);
-
-struct Stack;
-Stack* stackCreate();
-void stackDestroy(Stack*);
-void stackPush(Stack*, const string&);
-string stackGet(const Stack*);
-string stackPop(Stack*);
-vector<string> stackValues(const Stack*);
-
-struct Queue;
-Queue* queueCreate();
-void queueDestroy(Queue*);
-void queuePush(Queue*, const string&);
-string queueGet(const Queue*);
-string queuePop(Queue*);
-vector<string> queueValues(const Queue*);
-
-struct AvlTree;
-AvlTree* avlCreate();
-void avlDestroy(AvlTree*);
-void avlInsert(AvlTree*, int);
-bool avlContains(const AvlTree*, int);
-bool avlDelete(AvlTree*, int);
-vector<int> avlValues(const AvlTree*);
 
 // Хранит одну структуру данных выбранного типа.
 struct Data {
@@ -274,8 +225,8 @@ string runList(Database& db, const vector<string>& words, bool& changed) {
     }
     if (action == "INSERTBEFORE" || action == "INSERTAFTER") {
         need(words, 4);
-        int index = number(words[2]);
-        if (index >= size) throw runtime_error("index out of range");
+        int index = listFind(d, words[2]);
+        if (index == -1) throw runtime_error("value not found");
         if (action == "INSERTAFTER") index++;
         listInsert(d, index, words[3]);
         changed = true;
@@ -283,8 +234,8 @@ string runList(Database& db, const vector<string>& words, bool& changed) {
     }
     if (action == "DEL" || action == "DELBEFORE" || action == "DELAFTER") {
         need(words, 3);
-        int index = number(words[2]);
-        if (action != "DEL" && index >= size) throw runtime_error("index out of range");
+        int index = listFind(d, words[2]);
+        if (index == -1) throw runtime_error("value not found");
         if (action == "DELBEFORE") index--;
         if (action == "DELAFTER") index++;
         string result = listDelete(d, index);
@@ -306,7 +257,12 @@ string runList(Database& db, const vector<string>& words, bool& changed) {
         return result;
     }
     if (action == "FIND") { need(words, 3); return to_string(listFind(d, words[2])); }
-    if (action == "GET") { need(words, 3); return listGet(d, number(words[2])); }
+    if (action == "GET") {
+        need(words, 3);
+        int index = listFind(d, words[2]);
+        if (index == -1) throw runtime_error("value not found");
+        return listGet(d, index);
+    }
     if (action == "READ") {
         if (words.size() != 2 && words.size() != 3) throw runtime_error("wrong number of arguments");
         if (words.size() == 3 && words[2] != "FORWARD" && words[2] != "REVERSE") throw runtime_error("use FORWARD or REVERSE");
@@ -377,7 +333,7 @@ string run(Database& db, const string& query, bool& changed) {
     const string& op = words[0];
     if (op == "HELP") {
         need(words, 1);
-        return "M: CREATE PUSH INSERT GET SET DEL LEN READ; F/L: CREATE PUSH INSERTHEAD INSERTTAIL INSERTBEFORE INSERTAFTER DEL DELHEAD DELTAIL DELBEFORE DELAFTER REMOVE FIND GET READ; S/Q: CREATE PUSH POP GET READ; T: CREATE INSERT DEL GET READ; PRINT name; ISMEMBER name key";
+        return "M: CREATE PUSH INSERT GET SET DEL LEN READ; F/L: CREATE PUSH INSERTHEAD INSERTTAIL INSERTBEFORE INSERTAFTER DEL DELHEAD DELTAIL DELBEFORE DELAFTER REMOVE FIND GET READ (list arguments are values; FIND returns an index); S/Q: CREATE PUSH POP GET READ; T: CREATE INSERT DEL GET READ; PRINT name; ISMEMBER name key";
     }
     if (words.size() < 2) throw runtime_error("container name required");
     if (op == "PRINT") {

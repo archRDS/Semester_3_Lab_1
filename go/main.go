@@ -267,9 +267,9 @@ func runList(db Database, words []string, changed *bool) string {
 		return words[2]
 	case "INSERTBEFORE", "INSERTAFTER":
 		need(words, 4)
-		index := number(words[2])
-		if index >= size {
-			panic("index out of range")
+		index := listFind(data, words[2])
+		if index == -1 {
+			panic("value not found")
 		}
 		if action == "INSERTAFTER" {
 			index++
@@ -279,9 +279,9 @@ func runList(db Database, words []string, changed *bool) string {
 		return words[3]
 	case "DEL", "DELBEFORE", "DELAFTER":
 		need(words, 3)
-		index := number(words[2])
-		if action != "DEL" && index >= size {
-			panic("index out of range")
+		index := listFind(data, words[2])
+		if index == -1 {
+			panic("value not found")
 		}
 		if action == "DELBEFORE" {
 			index--
@@ -315,7 +315,11 @@ func runList(db Database, words []string, changed *bool) string {
 		return strconv.Itoa(listFind(data, words[2]))
 	case "GET":
 		need(words, 3)
-		return listGet(data, number(words[2]))
+		index := listFind(data, words[2])
+		if index == -1 {
+			panic("value not found")
+		}
+		return listGet(data, index)
 	case "READ":
 		if len(words) != 2 && len(words) != 3 {
 			panic("wrong number of arguments")
@@ -375,7 +379,7 @@ func run(db Database, query string, changed *bool) string {
 	op := words[0]
 	if op == "HELP" {
 		need(words, 1)
-		return "M: CREATE PUSH INSERT GET SET DEL LEN READ; F/L: CREATE PUSH INSERTHEAD INSERTTAIL INSERTBEFORE INSERTAFTER DEL DELHEAD DELTAIL DELBEFORE DELAFTER REMOVE FIND GET READ; S/Q: CREATE PUSH POP GET READ; PRINT name"
+		return "M: CREATE PUSH INSERT GET SET DEL LEN READ; F/L: CREATE PUSH INSERTHEAD INSERTTAIL INSERTBEFORE INSERTAFTER DEL DELHEAD DELTAIL DELBEFORE DELAFTER REMOVE FIND GET READ (list arguments are values; FIND returns an index); S/Q: CREATE PUSH POP GET READ; PRINT name"
 	}
 	if len(words) < 2 {
 		panic("container name required")

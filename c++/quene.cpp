@@ -1,19 +1,7 @@
 #include <stdexcept>
-#include <string>
-#include <vector>
+#include "quene.h"
 
 using namespace std;
-
-// Очередь хранит ссылки на первый и последний элементы.
-struct QueueNode {
-    string value;
-    QueueNode* next = nullptr;
-};
-
-struct Queue {
-    QueueNode* head = nullptr;
-    QueueNode* tail = nullptr;
-};
 
 Queue* queueCreate() {
     return new Queue;

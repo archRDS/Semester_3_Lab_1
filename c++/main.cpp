@@ -74,6 +74,7 @@ vector<string> values(const Data& d, bool reverse = false) {
 }
 
 string show(const Data& d, bool reverse = false) {
+    if (d.type == 'T') return avlReadPreOrder(d.tree);
     vector<string> items = values(d, reverse);
     if (items.empty()) return "(empty)";
     ostringstream output;

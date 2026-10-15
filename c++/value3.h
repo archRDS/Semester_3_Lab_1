@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 struct AvlNode {
@@ -21,3 +22,4 @@ void avlInsert(AvlTree* tree, int key);
 bool avlContains(const AvlTree* tree, int key);
 bool avlDelete(AvlTree* tree, int key);
 std::vector<int> avlValues(const AvlTree* tree);
+std::string avlReadPreOrder(const AvlTree* tree);

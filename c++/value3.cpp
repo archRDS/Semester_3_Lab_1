@@ -105,6 +105,13 @@ static void readInOrder(AvlNode* node, vector<int>& result) {
     readInOrder(node->right, result);
 }
 
+static void readPreOrder(AvlNode* node, int depth, const string& side, string& result) {
+    if (node == nullptr) return;
+    result += string(depth * 2, ' ') + side + ": " + to_string(node->key) + '\n';
+    readPreOrder(node->left, depth + 1, "L", result);
+    readPreOrder(node->right, depth + 1, "R", result);
+}
+
 static void deleteNodes(AvlNode* node) {
     if (node == nullptr) return;
     deleteNodes(node->left);
@@ -144,5 +151,13 @@ bool avlDelete(AvlTree* tree, int key) {
 vector<int> avlValues(const AvlTree* tree) {
     vector<int> result;
     readInOrder(tree->root, result);
+    return result;
+}
+
+string avlReadPreOrder(const AvlTree* tree) {
+    if (tree->root == nullptr) return "(empty)";
+    string result;
+    readPreOrder(tree->root, 0, "ROOT", result);
+    result.pop_back();
     return result;
 }
